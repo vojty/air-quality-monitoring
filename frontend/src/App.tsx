@@ -5,6 +5,7 @@ import {
   formatTemperature,
   formatTimestamp,
 } from "./formatters";
+import { Status } from "./Status";
 
 type SensorData = {
   temperature: number;
@@ -53,21 +54,25 @@ function Box({
 }
 
 // https://tailwindcss.com/docs/customizing-colors
-function getReadyStateColor(readyState: ReadyState) {
+function getStatusProps(readyState: ReadyState) {
   switch (readyState) {
     case ReadyState.CONNECTING:
-      return "#fdba74";
+      return { color: "#fdba74", animate: true };
     case ReadyState.UNINSTANTIATED:
     case ReadyState.CLOSING:
     case ReadyState.CLOSED:
-      return "#ef4444";
+      return { color: "#ef4444", animate: false };
     case ReadyState.OPEN:
-      return "#4ade80";
+      return { color: "#4ade80", animate: false };
   }
 }
 
 export function App() {
-  const { lastJsonMessage, readyState } = useWebSocket("ws://192.168.1.20/ws");
+  const { lastJsonMessage, readyState } = useWebSocket("ws://192.168.1.20/ws", {
+    shouldReconnect: () => true,
+    retryOnError: true,
+    reconnectInterval: 5_000,
+  });
   const [state, setState] = useState<State>({});
 
   useEffect(() => {
@@ -111,16 +116,11 @@ export function App() {
               alignItems: "center",
             }}
           >
-            <span
-              style={{
-                margin: "0 0.5rem",
-                height: 10,
-                width: 10,
-                background: getReadyStateColor(readyState),
-                borderRadius: "50%",
-              }}
-            />
-            Last update @ {formatTimestamp(data.timestamp)}
+            <Status size={10} {...getStatusProps(readyState)} />
+
+            <span style={{ marginLeft: "0.5rem", fontVariant: "tabular-nums" }}>
+              Last update @ {formatTimestamp(data.timestamp)}
+            </span>
           </small>
         </div>
       ))}
