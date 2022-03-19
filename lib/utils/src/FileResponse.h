@@ -15,7 +15,7 @@ class FileResponse : public AsyncFileResponse {
 
     // Fix for content-type since according to AsyncFileResponse everthing with .gz extension is application/x-gzip
     if (path.endsWith(".gz")) {
-      String realpath = trim_gz(path);
+      String realpath = trimGz(path);
       this->addHeader("Content-Encoding", "gzip");
       setContentType(this->getContentType(realpath));
     } else {

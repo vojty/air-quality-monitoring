@@ -14,7 +14,7 @@ ForcedClimate climateSensor = ForcedClimate(Wire, BME280_I2C_ADDRESS);
 // MAC Address of the receiver
 uint8_t broadcastAddress[] = {0x94, 0x3c, 0xc6, 0x05, 0x27, 0xac};
 
-unsigned int messageId = 0;
+RTC_DATA_ATTR unsigned int messageId = 0;
 
 SensorData collectData() {
   climateSensor.begin();
@@ -26,13 +26,15 @@ SensorData collectData() {
   data.humidity = climateSensor.getRelativeHumidity();
   data.messageId = messageId++;
 
-  Serial.printf("\nData: temperature=%f, humidity=%f\n\n", data.temperature, data.humidity);
+  Serial.printf("\nData: temperature=%f, humidity=%f, messageId=%d\n\n", data.temperature, data.humidity,
+                data.messageId);
 
   return data;
 }
 
 void setup() {
   unsigned long startTime = millis();
+  disableBuiltinLed();
 
   // Init Serial Monitor
   Serial.begin(115200);
@@ -52,7 +54,7 @@ void setup() {
 
   // Register peer
   esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  memcpy(peerInfo.peer_addr, broadcastAddress, sizeof(broadcastAddress));
   peerInfo.encrypt = false;
 
   // Add peer
@@ -72,7 +74,7 @@ void setup() {
   }
 
   // Sleep
-  go_to_deep_sleep(SLAVE_SLEEP_TIME_SECONDS);
+  goToDeepSleep(SLAVE_SLEEP_TIME_SECONDS);
 }
 
 void loop() {

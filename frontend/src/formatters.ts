@@ -6,6 +6,10 @@ export function formatHumidity(value: number) {
   return `${value.toFixed(0)} %`;
 }
 
+export function formatCo2(value: number) {
+  return `${Number(value).toLocaleString()} ppm`;
+}
+
 export function formatTimestamp(value: number) {
   const d = new Date(value * 1000);
   return d.toLocaleTimeString([], {

@@ -11,7 +11,7 @@
 /* Conversion factor for micro seconds to seconds */
 #define uS_TO_S_FACTOR 1000000
 
-void scan_i2c() {
+void scanI2c() {
   byte error, address;
   int nDevices;
   Serial.println("Scanning...");
@@ -44,14 +44,19 @@ void scan_i2c() {
 }
 
 // https://savjee.be/2019/12/esp32-tips-to-increase-battery-life/
-void go_to_deep_sleep(int sleep_seconds) {
+void goToDeepSleep(int sleep_seconds) {
   // the original code from the website crashes :/
   adc_power_release();
   esp_sleep_enable_timer_wakeup(sleep_seconds * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 
-String trim_gz(String s) {
+void disableBuiltinLed() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+String trimGz(String s) {
   if (s.endsWith(".gz")) {
     int end = s.lastIndexOf(".");
     return s.substring(0, end);

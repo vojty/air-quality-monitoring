@@ -10,9 +10,12 @@ typedef struct SensorData {
   int messageId;
 } SensorData;
 
-void scan_i2c(void);
-void go_to_deep_sleep(int sleep_seconds);
+void scanI2c(void);
 
-String trim_gz(String s);
+void goToDeepSleep(int sleep_seconds);
+
+void disableBuiltinLed(void);
+
+String trimGz(String s);
 
 #endif

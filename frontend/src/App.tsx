@@ -1,11 +1,9 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import {
-  formatHumidity,
-  formatTemperature,
-  formatTimestamp,
-} from "./formatters";
-import { Status } from "./Status";
+import { Board } from "./components/Board";
+import { Box } from "./components/Box";
+import { Status } from "./components/Status";
+import { formatCo2, formatHumidity, formatTemperature } from "./formatters";
 
 type SensorData = {
   temperature: number;
@@ -14,44 +12,27 @@ type SensorData = {
   timestamp: number; // in seconds
 };
 
-type Message = SensorData & {
+enum MessageType {
+  BOARD = "BOARD",
+  MASTER = "MASTER",
+}
+
+type BoardMessage = SensorData & {
+  type: MessageType.BOARD;
   boardId: number;
 };
 
-type State = {
-  [boardId: number]: SensorData;
+type MasterMessage = {
+  type: MessageType.MASTER;
+  timestamp: number; // in seconds
+  co2: number; // ppm
 };
 
-function Box({
-  icon,
-  title,
-  text,
-}: {
-  icon: ReactNode;
-  title: ReactNode;
-  text: ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        alignItems: "center",
-        display: "flex",
-        padding: "1.5rem",
-        margin: "1rem",
-        background: "#ffedd5",
-        borderRadius: 10,
-      }}
-    >
-      <div>
-        <div style={{ fontSize: "1.85rem", margin: "0 0.5rem 0.25rem 0" }}>
-          {icon}
-        </div>
-        <div style={{ fontSize: "0.9rem" }}>{title}</div>
-      </div>
-      <div style={{ fontSize: "3.45rem", marginLeft: "auto" }}>{text}</div>
-    </div>
-  );
-}
+type Message = BoardMessage | MasterMessage;
+
+type BoardsData = {
+  [boardId: number]: SensorData;
+};
 
 // https://tailwindcss.com/docs/customizing-colors
 function getStatusProps(readyState: ReadyState) {
@@ -67,13 +48,20 @@ function getStatusProps(readyState: ReadyState) {
   }
 }
 
+const WS_HOSTNAME =
+  import.meta.env.VITE_WS_HOSTNAME || window.location.hostname;
+
 export function App() {
-  const { lastJsonMessage, readyState } = useWebSocket("ws://192.168.1.20/ws", {
-    shouldReconnect: () => true,
-    retryOnError: true,
-    reconnectInterval: 5_000,
-  });
-  const [state, setState] = useState<State>({});
+  const { lastJsonMessage, readyState } = useWebSocket(
+    `ws://${WS_HOSTNAME}/ws`,
+    {
+      shouldReconnect: () => true,
+      retryOnError: true,
+      reconnectInterval: 5_000,
+    }
+  );
+  const [boardsData, setBoardsData] = useState<BoardsData>({});
+  const [masterData, setMasterData] = useState<MasterMessage>();
 
   useEffect(() => {
     const message: Message | null = lastJsonMessage;
@@ -81,22 +69,26 @@ export function App() {
       return;
     }
 
-    const { boardId, ...sensorData } = message;
-    setState((prevState) => ({
-      ...prevState,
-      [boardId]: sensorData,
-    }));
+    if (message.type === MessageType.BOARD) {
+      const { boardId, ...sensorData } = message;
+      setBoardsData((prevState) => ({
+        ...prevState,
+        [boardId]: sensorData,
+      }));
+    }
+
+    if (message.type === MessageType.MASTER) {
+      setMasterData(message);
+    }
   }, [lastJsonMessage]);
 
   return (
-    <>
-      {Object.entries(state).map(([boardId, data]) => (
-        <div
+    <div style={{ padding: "0.5rem", margin: "0 auto", maxWidth: 400 }}>
+      {Object.entries(boardsData).map(([boardId, data]) => (
+        <Board
           key={boardId}
-          style={{
-            margin: "0 auto",
-            maxWidth: 400,
-          }}
+          title={<>Board #{boardId}</>}
+          lastUpdate={data.timestamp}
         >
           <Box
             icon="🌡️"
@@ -108,22 +100,34 @@ export function App() {
             title="Humidity"
             text={formatHumidity(data.humidity)}
           />
-
-          <small
-            style={{
-              justifyContent: "center",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <Status size={10} {...getStatusProps(readyState)} />
-
-            <span style={{ marginLeft: "0.5rem", fontVariant: "tabular-nums" }}>
-              Last update @ {formatTimestamp(data.timestamp)}
-            </span>
-          </small>
-        </div>
+        </Board>
       ))}
-    </>
+
+      {masterData && (
+        <Board title={"Main board"} lastUpdate={masterData.timestamp}>
+          <Box
+            icon="💨"
+            title={
+              <>
+                CO<sup>2</sup>
+              </>
+            }
+            text={formatCo2(masterData.co2)}
+          />
+        </Board>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          margin: "0.5rem 0",
+        }}
+      >
+        Connection <Status size={10} {...getStatusProps(readyState)} />
+      </div>
+    </div>
   );
 }

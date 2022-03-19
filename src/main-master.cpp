@@ -1,7 +1,9 @@
 #include <Arduino_JSON.h>
-#include <Credentials.h>
+#include <Config.h>
+#include <ErriezMHZ19B.h>
 #include <FileResponse.h>
 #include <NTPClient.h>
+#include <SoftwareSerial.h>
 #include <WiFi.h>
 #include <esp_now.h>
 #include <utils.h>
@@ -9,16 +11,39 @@
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
 
-SensorData incomingReadings;
+#define MHZ19B_TX_PIN D3
+#define MHZ19B_RX_PIN D2
 
+// Static IP default values
+IPAddress localIp;
+IPAddress gateway;
+IPAddress subnet;
+// DNS is needed as well
+IPAddress primaryDNS(8, 8, 8, 8);
+IPAddress secondaryDNS(8, 8, 4, 4);
+
+// Init serial communication for MH-Z19B
+SoftwareSerial mhzSerial(MHZ19B_TX_PIN, MHZ19B_RX_PIN);
+ErriezMHZ19B mhz19b(&mhzSerial);
+
+// Refactor these
+SensorData incomingReadings;
+JSONVar mainBoard;
 JSONVar board;
 String jsonResponse;
+String mainJsonResponse;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
+// NTP
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org");
+
+void sendJson(String json) {
+  Serial.printf("Data: %s\n", json.c_str());
+  ws.textAll(json.c_str());
+}
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
@@ -31,6 +56,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 
   // Parse data
   memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+  board["type"] = "BOARD";
   board["boardId"] = incomingReadings.boardId;
   board["temperature"] = incomingReadings.temperature;
   board["humidity"] = incomingReadings.humidity;
@@ -38,9 +64,7 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   board["timestamp"] = timeClient.getEpochTime();  // GMT
   jsonResponse = JSON.stringify(board);
 
-  Serial.printf("Data: %s\n", jsonResponse.c_str());
-
-  ws.textAll(jsonResponse.c_str());
+  sendJson(jsonResponse);
 }
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
@@ -50,7 +74,10 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       // Send last data if any
       if (jsonResponse) {
-        ws.textAll(jsonResponse.c_str());
+        sendJson(jsonResponse);
+      }
+      if (mainJsonResponse) {
+        sendJson(mainJsonResponse);
       }
       break;
     case WS_EVT_DISCONNECT:
@@ -67,7 +94,7 @@ void initWebSocket() {
 }
 
 void setup() {
-  // Initialize Serial Monitor
+  disableBuiltinLed();
   Serial.begin(115200);
 
   if (!SPIFFS.begin(true)) {
@@ -75,9 +102,26 @@ void setup() {
     return;
   }
 
-  // Set the device as a Station and Soft Access Point simultaneously
-  WiFi.mode(WIFI_AP_STA);
+  localIp.fromString(MASTER_IP_ADDRESS);
+  gateway.fromString(MASTER_GATEWAY);
+  subnet.fromString(MASTER_SUBNET);
 
+  mhzSerial.begin(9600);
+  // Optional: Detect MH-Z19B sensor (check wiring / power)
+  while (!mhz19b.detect()) {
+    Serial.println(F("Detecting MH-Z19B sensor..."));
+    delay(2000);
+  };
+  // Optional: Print firmware version
+  Serial.print(F("  Firmware: "));
+  char firmwareVersion[5];
+  mhz19b.getVersion(firmwareVersion, sizeof(firmwareVersion));
+  Serial.println(firmwareVersion);
+
+  WiFi.mode(WIFI_AP_STA);
+  if (!WiFi.config(localIp, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("Failed to configure static IP address");
+  }
   // Set device as a Wi-Fi Station
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -86,6 +130,8 @@ void setup() {
   }
   Serial.print("Station IP Address: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Station MAC Address: ");
+  Serial.println(WiFi.macAddress());
   Serial.print("Wi-Fi Channel: ");
   Serial.println(WiFi.channel());
 
@@ -106,7 +152,7 @@ void setup() {
   File root = SPIFFS.open("/assets");
   while (File file = root.openNextFile()) {
     String filepath = String(file.name());
-    String url = trim_gz(filepath);
+    String url = trimGz(filepath);
 
     server.on(url.c_str(), HTTP_GET, [filepath](AsyncWebServerRequest *request) {
       FileResponse *response = new FileResponse(SPIFFS, filepath.c_str());
@@ -123,4 +169,43 @@ void setup() {
   server.begin();
 }
 
-void loop() { timeClient.update(); }
+void printErrorCode(int16_t result) {
+  // Print error code
+  switch (result) {
+    case MHZ19B_RESULT_ERR_CRC:
+      Serial.println(F("CRC error"));
+      break;
+    case MHZ19B_RESULT_ERR_TIMEOUT:
+      Serial.println(F("RX timeout"));
+      break;
+    default:
+      Serial.print(F("Error: "));
+      Serial.println(result);
+      break;
+  }
+}
+
+void loop() {
+  // Update NTP
+  timeClient.update();
+
+  int16_t result;
+
+  // Minimum interval between CO2 reads is required
+  if (mhz19b.isReady()) {
+    // Read CO2 concentration from sensor
+    result = mhz19b.readCO2();
+
+    // Print result
+    if (result < 0) {
+      // An error occurred
+      printErrorCode(result);
+    } else {
+      mainBoard["type"] = "MASTER";
+      mainBoard["timestamp"] = timeClient.getEpochTime();
+      mainBoard["co2"] = result;
+      mainJsonResponse = JSON.stringify(mainBoard);
+      sendJson(mainJsonResponse);
+    }
+  }
+}

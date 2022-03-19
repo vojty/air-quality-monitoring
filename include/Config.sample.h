@@ -1,0 +1,7 @@
+#define SLAVE_SLEEP_TIME_SECONDS 10
+#define BME280_I2C_ADDRESS 0x76
+#define WIFI_SSID "<ssid>>"
+#define WIFI_PASSWORD "<password>"
+#define MASTER_IP_ADDRESS "192.168.0.200"
+#define MASTER_GATEWAY "192.168.0.1"
+#define MASTER_SUBNET "255.255.255.0"

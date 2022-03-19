@@ -21,3 +21,4 @@ This one is the fastest and supports the forced mode (sleep mode / low consumpti
 ## Random observations
 
 - 2 installed libraries for a BME280 sensor break the compilation, wtf
+- ESP-NOW works only Wifi channel #1, wtf

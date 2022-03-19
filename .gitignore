@@ -3,8 +3,9 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-include/Credentials.h
+include/Config.h
 
 .vscode
 .pnpm-debug.log
 .DS_Store
+.env.development
