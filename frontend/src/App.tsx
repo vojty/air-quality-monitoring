@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
-import { Board } from "./components/Board";
+import { Station } from "./components/Station";
 import { Box } from "./components/Box";
 import { Status } from "./components/Status";
 import { formatCo2, formatHumidity, formatTemperature } from "./formatters";
@@ -13,13 +13,13 @@ type SensorData = {
 };
 
 enum MessageType {
-  BOARD = "BOARD",
+  STATION = "STATION",
   MASTER = "MASTER",
 }
 
-type BoardMessage = SensorData & {
-  type: MessageType.BOARD;
-  boardId: number;
+type StationMessage = SensorData & {
+  type: MessageType.STATION;
+  stationId: number;
 };
 
 type MasterMessage = {
@@ -28,10 +28,10 @@ type MasterMessage = {
   co2: number; // ppm
 };
 
-type Message = BoardMessage | MasterMessage;
+type Message = StationMessage | MasterMessage;
 
-type BoardsData = {
-  [boardId: number]: SensorData;
+type StationsData = {
+  [stationId: number]: SensorData;
 };
 
 // https://tailwindcss.com/docs/customizing-colors
@@ -60,7 +60,7 @@ export function App() {
       reconnectInterval: 5_000,
     }
   );
-  const [boardsData, setBoardsData] = useState<BoardsData>({});
+  const [stationsData, setStationsData] = useState<StationsData>({});
   const [masterData, setMasterData] = useState<MasterMessage>();
 
   useEffect(() => {
@@ -69,11 +69,11 @@ export function App() {
       return;
     }
 
-    if (message.type === MessageType.BOARD) {
-      const { boardId, ...sensorData } = message;
-      setBoardsData((prevState) => ({
+    if (message.type === MessageType.STATION) {
+      const { stationId, ...sensorData } = message;
+      setStationsData((prevState) => ({
         ...prevState,
-        [boardId]: sensorData,
+        [stationId]: sensorData,
       }));
     }
 
@@ -84,10 +84,10 @@ export function App() {
 
   return (
     <div style={{ padding: "0.5rem", margin: "0 auto", maxWidth: 400 }}>
-      {Object.entries(boardsData).map(([boardId, data]) => (
-        <Board
-          key={boardId}
-          title={<>Board #{boardId}</>}
+      {Object.entries(stationsData).map(([stationId, data]) => (
+        <Station
+          key={stationId}
+          title={<>Station #{stationId}</>}
           lastUpdate={data.timestamp}
         >
           <Box
@@ -100,11 +100,11 @@ export function App() {
             title="Humidity"
             text={formatHumidity(data.humidity)}
           />
-        </Board>
+        </Station>
       ))}
 
       {masterData && (
-        <Board title={"Main board"} lastUpdate={masterData.timestamp}>
+        <Station title={"Main station"} lastUpdate={masterData.timestamp}>
           <Box
             icon="💨"
             title={
@@ -114,7 +114,7 @@ export function App() {
             }
             text={formatCo2(masterData.co2)}
           />
-        </Board>
+        </Station>
       )}
 
       <div

@@ -1,4 +1,5 @@
-#define SLAVE_SLEEP_TIME_SECONDS 10
+#define STATIONS_COUNT 4
+#define STATION_SLEEP_TIME_SECONDS 10
 #define BME280_I2C_ADDRESS 0x76
 #define WIFI_SSID "<ssid>>"
 #define WIFI_PASSWORD "<password>"

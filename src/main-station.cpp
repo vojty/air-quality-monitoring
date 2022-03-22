@@ -74,7 +74,7 @@ void setup() {
   }
 
   // Sleep
-  goToDeepSleep(SLAVE_SLEEP_TIME_SECONDS);
+  goToDeepSleep(STATION_SLEEP_TIME_SECONDS);
 }
 
 void loop() {

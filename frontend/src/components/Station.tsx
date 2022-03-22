@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { formatTimestamp } from "../formatters";
 
-export function Board({
+export function Station({
   children,
   title,
   lastUpdate,

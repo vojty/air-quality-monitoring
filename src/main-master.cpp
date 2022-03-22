@@ -27,14 +27,13 @@ SoftwareSerial mhzSerial(MHZ19B_TX_PIN, MHZ19B_RX_PIN);
 ErriezMHZ19B mhz19b(&mhzSerial);
 
 // Refactor these
-SensorData incomingReadings;
 JSONVar mainBoard;
-JSONVar board;
-String jsonResponse;
 String mainJsonResponse;
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+
+CollectedSensorData sensorsCache[STATIONS_COUNT];
 
 // NTP
 WiFiUDP ntpUDP;
@@ -54,17 +53,17 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
            mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
 
-  // Parse data
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  board["type"] = "BOARD";
-  board["boardId"] = incomingReadings.boardId;
-  board["temperature"] = incomingReadings.temperature;
-  board["humidity"] = incomingReadings.humidity;
-  board["messageId"] = String(incomingReadings.messageId);
-  board["timestamp"] = timeClient.getEpochTime();  // GMT
-  jsonResponse = JSON.stringify(board);
+  SensorData receivedData;
 
-  sendJson(jsonResponse);
+  // Parse data
+  memcpy(&receivedData, incomingData, sizeof(receivedData));
+
+  // Store data so we can send them when a client reconnects
+  CollectedSensorData *data = &sensorsCache[receivedData.boardId];
+  data->setValues(receivedData, timeClient.getEpochTime());
+  String json = data->toJson();
+
+  sendJson(json);
 }
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
@@ -73,9 +72,12 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       // Send last data if any
-      if (jsonResponse) {
-        sendJson(jsonResponse);
+      for (CollectedSensorData cacheData : sensorsCache) {
+        if (cacheData.isValid()) {
+          sendJson(cacheData.toJson());
+        }
       }
+
       if (mainJsonResponse) {
         sendJson(mainJsonResponse);
       }
