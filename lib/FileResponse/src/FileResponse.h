@@ -1,5 +1,16 @@
+#ifndef BATTERY_MONITOR_H
+#define BATTERY_MONITOR_H
+
 #include "ESPAsyncWebServer.h"
-#include "utils.h"
+
+String trimGz(String s) {
+  if (s.endsWith(".gz")) {
+    int end = s.lastIndexOf(".");
+    return s.substring(0, end);
+  } else {
+    return s;
+  }
+}
 
 class FileResponse : public AsyncFileResponse {
   using File = fs::File;
@@ -64,3 +75,5 @@ class FileResponse : public AsyncFileResponse {
       return "text/plain";
   }
 };
+
+#endif

@@ -4,7 +4,6 @@
 #include <esp_wifi.h>
 
 #include "Arduino.h"
-#include "Wifi.h"
 #include "Wire.h"
 #include "driver/adc.h"
 
@@ -47,6 +46,8 @@ void scanI2c() {
 void goToDeepSleep(int sleep_seconds) {
   // the original code from the website crashes :/
   adc_power_release();
+  btStop();
+  esp_bt_controller_disable();
   esp_sleep_enable_timer_wakeup(sleep_seconds * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
@@ -54,13 +55,4 @@ void goToDeepSleep(int sleep_seconds) {
 void disableBuiltinLed() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-}
-
-String trimGz(String s) {
-  if (s.endsWith(".gz")) {
-    int end = s.lastIndexOf(".");
-    return s.substring(0, end);
-  } else {
-    return s;
-  }
 }

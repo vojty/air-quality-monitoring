@@ -40,12 +40,12 @@ void setup() {
   Serial.begin(115200);
   Serial.printf("MAC address: %s\n", WiFi.macAddress().c_str());
 
-  // Init Wifi
-  WiFi.mode(WIFI_STA);
 
   SensorData data = collectData();
   Serial.printf("Collect data time: %lums\n", millis() - startTime);
 
+  // Init Wifi
+  WiFi.mode(WIFI_STA);
   // Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");

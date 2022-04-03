@@ -1,15 +1,17 @@
 #include <Arduino_JSON.h>
-#include <Config.h>
+#include <ESPAsyncWebServer.h>
 #include <ErriezMHZ19B.h>
-#include <FileResponse.h>
 #include <NTPClient.h>
+#include <SPIFFS.h>
 #include <SoftwareSerial.h>
 #include <WiFi.h>
 #include <esp_now.h>
-#include <utils.h>
 
-#include "ESPAsyncWebServer.h"
-#include "SPIFFS.h"
+#include "CollectedSensorMessage.h"
+#include "Configuration.h"
+#include "FileResponse.h"
+#include "SensorMessage.h"
+#include "utils.h"
 
 #define MHZ19B_TX_PIN D3
 #define MHZ19B_RX_PIN D2
@@ -33,7 +35,7 @@ String mainJsonResponse;
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-CollectedSensorData sensorsCache[STATIONS_COUNT];
+CollectedSensorMessage sensorsCache[STATIONS_COUNT];
 
 // NTP
 WiFiUDP ntpUDP;
@@ -53,13 +55,13 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
            mac_addr[4], mac_addr[5]);
   Serial.println(macStr);
 
-  SensorData receivedData;
+  SensorMessage receivedData;
 
   // Parse data
   memcpy(&receivedData, incomingData, sizeof(receivedData));
 
   // Store data so we can send them when a client reconnects
-  CollectedSensorData *data = &sensorsCache[receivedData.boardId];
+  CollectedSensorMessage *data = &sensorsCache[receivedData.boardId];
   data->setValues(receivedData, timeClient.getEpochTime());
   String json = data->toJson();
 
@@ -72,7 +74,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     case WS_EVT_CONNECT:
       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       // Send last data if any
-      for (CollectedSensorData cacheData : sensorsCache) {
+      for (CollectedSensorMessage cacheData : sensorsCache) {
         if (cacheData.isValid()) {
           sendJson(cacheData.toJson());
         }
@@ -114,11 +116,6 @@ void setup() {
     Serial.println(F("Detecting MH-Z19B sensor..."));
     delay(2000);
   };
-  // Optional: Print firmware version
-  Serial.print(F("  Firmware: "));
-  char firmwareVersion[5];
-  mhz19b.getVersion(firmwareVersion, sizeof(firmwareVersion));
-  Serial.println(firmwareVersion);
 
   WiFi.mode(WIFI_AP_STA);
   if (!WiFi.config(localIp, gateway, subnet, primaryDNS, secondaryDNS)) {

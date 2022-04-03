@@ -22,3 +22,5 @@ This one is the fastest and supports the forced mode (sleep mode / low consumpti
 
 - 2 installed libraries for a BME280 sensor break the compilation, wtf
 - ESP-NOW works only Wifi channel #1, wtf
+- `Config.h` interferences with other internal config
+- including files with platformio & C language is just weird. Apparently everything needs separate folder in `lib/<package>/src/*`
