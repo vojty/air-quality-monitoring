@@ -7,6 +7,7 @@ typedef struct SensorMessage {
   float humidity;
   int messageId;
   float battery;
+  int interval;
 } SensorMessage;
 
 #endif

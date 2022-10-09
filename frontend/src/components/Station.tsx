@@ -3,11 +3,13 @@ import { formatTimestamp } from "../formatters";
 
 export function Station({
   children,
-  title,
+  header,
+  interval,
   lastUpdate,
 }: {
   children: ReactNode;
-  title: ReactNode;
+  header: ReactNode;
+  interval: number;
   lastUpdate: number;
 }) {
   return (
@@ -19,14 +21,14 @@ export function Station({
         background: "#ddd",
       }}
     >
-      <div style={{ fontSize: "1.5rem", fontWeight: 500, textAlign: "center" }}>
-        {title}
+      <div style={{ fontSize: "1.5rem", fontWeight: 500, textAlign: "left" }}>
+        {header}
       </div>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "1rem",
+          gap: "0.5rem",
           margin: "1rem 0",
         }}
       >
@@ -34,14 +36,18 @@ export function Station({
       </div>
       <small
         style={{
-          justifyContent: "center",
           display: "flex",
           alignItems: "center",
+          margin: "0 0.5rem",
         }}
       >
-        <span style={{ marginLeft: "0.5rem", fontVariant: "tabular-nums" }}>
+        <span style={{ fontVariant: "tabular-nums" }}>
           Last update @ {formatTimestamp(lastUpdate)}
         </span>
+
+        {interval > 0 && (
+          <div style={{ marginLeft: "auto" }}>Interval: {interval}s</div>
+        )}
       </small>
     </div>
   );

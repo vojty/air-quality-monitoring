@@ -11,18 +11,21 @@ class CollectedSensorMessage {
   float humidity;
   float battery;
   int messageId;
-  int timestamp;
+  int receivedAt;
+  int interval;
 
  public:
   CollectedSensorMessage() { this->stationId = 0; };
 
-  void setValues(SensorMessage message, int timestamp) {
+  void setValues(SensorMessage message, int receivedAt) {
     this->stationId = message.boardId;
     this->temperature = message.temperature;
     this->humidity = message.humidity;
     this->battery = message.battery;
     this->messageId = message.messageId;
-    this->timestamp = timestamp;
+    this->interval = message.interval;
+
+    this->receivedAt = receivedAt;
   };
 
   bool isValid() {
@@ -38,7 +41,8 @@ class CollectedSensorMessage {
     json["humidity"] = this->humidity;
     json["battery"] = this->battery;
     json["messageId"] = this->messageId;
-    json["timestamp"] = this->timestamp;
+    json["receivedAt"] = this->receivedAt;
+    json["interval"] = this->interval;
     return JSON.stringify(json);
   }
 };

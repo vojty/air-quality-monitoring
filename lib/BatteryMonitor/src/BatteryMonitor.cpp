@@ -6,12 +6,12 @@
 #include "Wire.h"
 
 // Has to be global, dunno why
-TwoWire batteryMonitorWire = TwoWire(0);
+TwoWire batteryMonitorWire = TwoWire(BATTERY_MONITOR_BUS);
 
 Adafruit_LC709203F* getBatteryMonitor(HardwareSerial* serial) {
   Adafruit_LC709203F* batteryMonitor = new Adafruit_LC709203F();
 
-  batteryMonitorWire.begin(BATTERY_MONITOR_SDA_PIN, BATTERY_MONITOR_SDL_PIN);
+  batteryMonitorWire.begin(BATTERY_MONITOR_SDA_PIN, BATTERY_MONITOR_SDL_PIN, 10000);
 
   if (!batteryMonitor->begin(&batteryMonitorWire)) {
     serial->println(F("Couldnt find Adafruit LC709203F?\nMake sure a battery is plugged in!"));

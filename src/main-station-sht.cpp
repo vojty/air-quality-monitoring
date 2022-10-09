@@ -22,8 +22,8 @@ void setup() {
 
   Serial.begin(115200);
 
-  batteryMonitor = getBatteryMonitor(&Serial);
   SensorData data = collectData(&sht, &Serial);
+  batteryMonitor = getBatteryMonitor(&Serial);
   float batteryPercent = batteryMonitor->cellPercent();
   Serial.printf("Collect data time: %lums\n", millis() - startTime);
 
@@ -33,6 +33,7 @@ void setup() {
   message.temperature = data.temperature;
   message.messageId = messageId++;
   message.battery = batteryPercent;
+  message.interval = STATION_SLEEP_TIME_SECONDS;
   transmitMessage(message);
 
   goToDeepSleep(STATION_SLEEP_TIME_SECONDS);

@@ -4,12 +4,15 @@ import { Station } from "./components/Station";
 import { Box } from "./components/Box";
 import { Status } from "./components/Status";
 import { formatCo2, formatHumidity, formatTemperature } from "./formatters";
+import { Battery } from "./components/Battery";
 
 type SensorData = {
   temperature: number;
   humidity: number;
   messageId: number;
-  timestamp: number; // in seconds
+  receivedAt: number; // in seconds
+  interval: number; // in seconds
+  battery: number; // in percents
 };
 
 enum MessageType {
@@ -87,8 +90,23 @@ export function App() {
       {Object.entries(stationsData).map(([stationId, data]) => (
         <Station
           key={stationId}
-          title={<>Station #{stationId}</>}
-          lastUpdate={data.timestamp}
+          header={
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                margin: "0 0.5rem",
+              }}
+            >
+              <div>Station #{stationId}</div>
+              <div style={{ marginLeft: "auto" }}>
+                <Battery percentage={data.battery} />
+              </div>
+            </div>
+          }
+          // @ts-ignore back compatibility
+          lastUpdate={data.receivedAt || data.timestamp}
+          interval={data.interval}
         >
           <Box
             icon="🌡️"
@@ -104,7 +122,11 @@ export function App() {
       ))}
 
       {masterData && (
-        <Station title={"Main station"} lastUpdate={masterData.timestamp}>
+        <Station
+          header={"Main station"}
+          lastUpdate={masterData.timestamp}
+          interval={0}
+        >
           <Box
             icon="💨"
             title={

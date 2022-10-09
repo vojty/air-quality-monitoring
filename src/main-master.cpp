@@ -11,10 +11,9 @@
 #include "Configuration.h"
 #include "FileResponse.h"
 #include "SensorMessage.h"
-#include "utils.h"
 
-#define MHZ19B_TX_PIN D3
-#define MHZ19B_RX_PIN D2
+// #define MHZ19B_TX_PIN D3
+// #define MHZ19B_RX_PIN D2
 
 // Static IP default values
 IPAddress localIp;
@@ -25,8 +24,8 @@ IPAddress primaryDNS(8, 8, 8, 8);
 IPAddress secondaryDNS(8, 8, 4, 4);
 
 // Init serial communication for MH-Z19B
-SoftwareSerial mhzSerial(MHZ19B_TX_PIN, MHZ19B_RX_PIN);
-ErriezMHZ19B mhz19b(&mhzSerial);
+// SoftwareSerial mhzSerial(MHZ19B_TX_PIN, MHZ19B_RX_PIN);
+// ErriezMHZ19B mhz19b(&mhzSerial);
 
 // Refactor these
 JSONVar mainBoard;
@@ -98,7 +97,7 @@ void initWebSocket() {
 }
 
 void setup() {
-  disableBuiltinLed();
+  // disableBuiltinLed();
   Serial.begin(115200);
 
   if (!SPIFFS.begin(true)) {
@@ -109,13 +108,6 @@ void setup() {
   localIp.fromString(MASTER_IP_ADDRESS);
   gateway.fromString(MASTER_GATEWAY);
   subnet.fromString(MASTER_SUBNET);
-
-  mhzSerial.begin(9600);
-  // Optional: Detect MH-Z19B sensor (check wiring / power)
-  while (!mhz19b.detect()) {
-    Serial.println(F("Detecting MH-Z19B sensor..."));
-    delay(2000);
-  };
 
   WiFi.mode(WIFI_AP_STA);
   if (!WiFi.config(localIp, gateway, subnet, primaryDNS, secondaryDNS)) {
@@ -153,9 +145,14 @@ void setup() {
     String filepath = String(file.name());
     String url = trimGz(filepath);
 
-    server.on(url.c_str(), HTTP_GET, [filepath](AsyncWebServerRequest *request) {
+    AsyncCallbackWebHandler handler = server.on(url.c_str(), HTTP_GET, [filepath](AsyncWebServerRequest *request) {
       FileResponse *response = new FileResponse(SPIFFS, filepath.c_str());
-      request->send(response);
+      if (request->header("If-Modified-Since") == CURRENT_TIME) {
+        request->send(304);
+      } else {
+        response->addHeader("Last-Modified", CURRENT_TIME);
+        request->send(response);
+      }
     });
   }
 
@@ -166,6 +163,13 @@ void setup() {
   });
 
   server.begin();
+
+  // mhzSerial.begin(9600);
+  // // Optional: Detect MH-Z19B sensor (check wiring / power)
+  // while (!mhz19b.detect()) {
+  //   Serial.println(F("Detecting MH-Z19B sensor..."));
+  //   delay(2000);
+  // };
 }
 
 void printErrorCode(int16_t result) {
@@ -188,23 +192,23 @@ void loop() {
   // Update NTP
   timeClient.update();
 
-  int16_t result;
+  // int16_t result;
 
-  // Minimum interval between CO2 reads is required
-  if (mhz19b.isReady()) {
-    // Read CO2 concentration from sensor
-    result = mhz19b.readCO2();
+  // // Minimum interval between CO2 reads is required
+  // if (mhz19b.isReady()) {
+  //   // Read CO2 concentration from sensor
+  //   result = mhz19b.readCO2();
 
-    // Print result
-    if (result < 0) {
-      // An error occurred
-      printErrorCode(result);
-    } else {
-      mainBoard["type"] = "MASTER";
-      mainBoard["timestamp"] = timeClient.getEpochTime();
-      mainBoard["co2"] = result;
-      mainJsonResponse = JSON.stringify(mainBoard);
-      sendJson(mainJsonResponse);
-    }
-  }
+  //   // Print result
+  //   if (result < 0) {
+  //     // An error occurred
+  //     printErrorCode(result);
+  //   } else {
+  //     mainBoard["type"] = "MASTER";
+  //     mainBoard["timestamp"] = timeClient.getEpochTime();
+  //     mainBoard["co2"] = result;
+  //     mainJsonResponse = JSON.stringify(mainBoard);
+  //     sendJson(mainJsonResponse);
+  //   }
+  // }
 }

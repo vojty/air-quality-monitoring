@@ -1,0 +1,38 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.outer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 4px;
+  border: 1px solid #444;
+  width: 50px;
+  height: 18px;
+}
+
+.level {
+  position: absolute;
+  inset: 1px;
+  border-radius: 3px;
+}
+
+.percentage {
+  position: relative;
+  text-align: center;
+  z-index: 2;
+  font-size: 0.65rem;
+}
+
+.bump {
+  border-radius: 0 5px 5px 0;
+  background-color: #444;
+  margin: 1px;
+  width: 1px;
+  height: 5px;
+}

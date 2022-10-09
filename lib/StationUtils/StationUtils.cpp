@@ -33,8 +33,8 @@ void transmitMessage(SensorMessage message) {
     return;
   }
 
-  Serial.printf("Sending: { temperature: %f, humidity: %f, messageId: %d, battery: %f }\n", message.temperature,
-                message.humidity, message.messageId, message.battery);
+  Serial.printf("Sending: { temperature: %f, humidity: %f, messageId: %d, battery: %f, interval: %d }\n",
+                message.temperature, message.humidity, message.messageId, message.battery, message.interval);
 
   // Send data
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*)&message, sizeof(message));

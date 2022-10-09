@@ -14,7 +14,7 @@ export function Box({
       style={{
         alignItems: "center",
         display: "flex",
-        padding: "1.5rem 1rem",
+        padding: "1.0rem 1rem",
         background: "#ffedd5",
         borderRadius: 10,
       }}
